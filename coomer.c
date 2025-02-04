@@ -5,17 +5,22 @@
 #include <unistd.h>
 
 #define KEY_Q 24
+#define KEY_H 43
+#define KEY_J 44
+#define KEY_K 45
+#define KEY_L 46
+#define KEY_N 57
+#define KEY_P 33
 #define KEY_ESC 9
 #define BUTTON_SCROLL_UP 4
 #define BUTTON_SCROLL_DOWN 5
 
-void nearest_upscale(unsigned long* dat1, int width1, int height1, unsigned long* dat2, int width2, int height2) {
-	for (int i = 0;i < height2; ++i) {
-		for (int j = 0;j < width2; ++j) {
-			dat2[i * width2 + j] = dat1[(i * height1/height2 * width1) + (j * width1 / width2)];
-		}
-	}
-}
+typedef struct  {
+	int x;
+	int y;
+	int width;
+	int height;
+} IRect; //Funny haha lol
 
 void nearest_upscale_image(XImage* img1, XImage* img2, int x, int y, int swidth, int sheight) {
 	int nwidth = img2->width;
@@ -27,13 +32,48 @@ void nearest_upscale_image(XImage* img1, XImage* img2, int x, int y, int swidth,
 	}
 }
 
+IRect zoom_in(IRect* irects, int *irects_idx_ptr,int irects_capacity, int width, int height, int xpos, int ypos) {
+	int irects_idx = *irects_idx_ptr;
+	IRect zoomed_irect = (IRect)irects[irects_idx];
+	zoomed_irect.width = zoomed_irect.width * 3 / 4;
+	zoomed_irect.height = zoomed_irect.height * 3 / 4;
 
-typedef struct  {
-	int x;
-	int y;
-	int width;
-	int height;
-} IRect; //Funny haha lol
+	int bruh = 0;
+
+	if (zoomed_irect.width * 100 < width || zoomed_irect.height * 100 < height) {
+		zoomed_irect.width = width/100;;
+		zoomed_irect.height = height/100;
+		bruh = 1;
+	}
+
+
+	if (xpos * 3 > width * 2) {
+		zoomed_irect.x = irects[irects_idx].x + (irects[irects_idx].width - zoomed_irect.width);
+	} else if (xpos * 3 < width) {
+		zoomed_irect.x = irects[irects_idx].x;
+	} else {
+		zoomed_irect.x = irects[irects_idx].x + (irects[irects_idx].width - zoomed_irect.width) / 2;
+	}
+
+	if (ypos * 3 > height * 2) {
+		zoomed_irect.y = irects[irects_idx].y + (irects[irects_idx].height - zoomed_irect.height);
+	} else if (ypos * 3 < height) {
+		zoomed_irect.y = irects[irects_idx].y;
+	} else {
+		zoomed_irect.y = irects[irects_idx].y + (irects[irects_idx].height - zoomed_irect.height) / 2;
+	}
+	irects_idx -= bruh;
+	irects_idx++;
+	if (irects_idx >= irects_capacity) {
+		irects_capacity *= 2;
+		irects = realloc(irects, sizeof(*irects) * irects_capacity);
+	}
+	irects[irects_idx] = zoomed_irect;
+	*irects_idx_ptr = irects_idx;
+	return zoomed_irect;
+}
+
+
 
 int main() {
 	Display* dpy = XOpenDisplay(NULL);
@@ -89,45 +129,55 @@ int main() {
 		if (event.type == Expose) {
 		} else if (event.type == KeyPress) {
 			if (event.xkey.keycode == KEY_ESC || event.xkey.keycode == KEY_Q) _ = 0;
+			if ((event.xkey.keycode >= KEY_H && event.xkey.keycode <= KEY_L) || event.xkey.keycode == KEY_N) {
+				int xpos = 0;
+				int ypos = 0;
+				switch (event.xkey.keycode) {
+					case KEY_H:
+						xpos = 0;
+						ypos = height/2;
+						break;
+					case KEY_J:
+						xpos = width / 2;
+						ypos = height;
+						break;
+					case KEY_K:
+						xpos = width / 2;
+						ypos = 0;
+						break;
+					case KEY_Q:
+						xpos = width;
+						ypos = height / 2;
+						break;
+					case KEY_N:
+						xpos = width/2;
+						ypos = height/2;
+						break;
+				}
+				IRect zoomed_irect = zoom_in(irects, &irects_idx, irects_capacity, width, height, xpos, ypos);
+				nearest_upscale_image(ximg, ximg_zoom, zoomed_irect.x, zoomed_irect.y, zoomed_irect.width, zoomed_irect.height);
+				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
+				XClearWindow(dpy,fs_win);
+			} else if (event.xkey.keycode == KEY_P) {
+				if (irects_idx < 1) {
+					irects_idx = 1;
+				}
+				IRect prev_zoomed_irect = irects[--irects_idx];
+				nearest_upscale_image(ximg, ximg_zoom, prev_zoomed_irect.x, prev_zoomed_irect.y, prev_zoomed_irect.width, prev_zoomed_irect.height);
+				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
+				XClearWindow(dpy,fs_win);
+			} else if (event.xkey.keycode == 21) {
+				irects_idx = 0;
+				IRect prev_zoomed_irect = irects[irects_idx];
+				nearest_upscale_image(ximg, ximg_zoom, prev_zoomed_irect.x, prev_zoomed_irect.y, prev_zoomed_irect.width, prev_zoomed_irect.height);
+				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
+				XClearWindow(dpy,fs_win);
+			}
 		} else if (event.type == ButtonPress) {
 			if (event.xbutton.button == BUTTON_SCROLL_UP) {
-				IRect zoomed_irect = (IRect)irects[irects_idx];
-				zoomed_irect.width = zoomed_irect.width * 3 / 4;
-				zoomed_irect.height = zoomed_irect.height * 3 / 4;
-
-				int bruh = 0;
-
-				if (zoomed_irect.width * 100 < width || zoomed_irect.height * 100 < height) {
-					zoomed_irect.width = width/100;;
-					zoomed_irect.height = height/100;
-					bruh = 1;
-				}
-
 				int xpos = event.xbutton.x;
 				int ypos = event.xbutton.y;
-
-				if (xpos * 3 > width * 2) {
-					zoomed_irect.x = irects[irects_idx].x + (irects[irects_idx].width - zoomed_irect.width);
-				} else if (xpos * 3 < width) {
-					zoomed_irect.x = irects[irects_idx].x;
-				} else {
-					zoomed_irect.x = irects[irects_idx].x + (irects[irects_idx].width - zoomed_irect.width) / 2;
-				}
-
-				if (ypos * 3 > height * 2) {
-					zoomed_irect.y = irects[irects_idx].y + (irects[irects_idx].height - zoomed_irect.height);
-				} else if (ypos * 3 < height) {
-					zoomed_irect.y = irects[irects_idx].y;
-				} else {
-					zoomed_irect.y = irects[irects_idx].y + (irects[irects_idx].height - zoomed_irect.height) / 2;
-				}
-				irects_idx -= bruh;
-				irects_idx++;
-				if (irects_idx >= irects_capacity) {
-					irects_capacity *= 2;
-					irects = realloc(irects, sizeof(*irects) * irects_capacity);
-				}
-				irects[irects_idx] = zoomed_irect;
+				IRect zoomed_irect = zoom_in(irects, &irects_idx, irects_capacity, width, height, xpos, ypos);
 				nearest_upscale_image(ximg, ximg_zoom, zoomed_irect.x, zoomed_irect.y, zoomed_irect.width, zoomed_irect.height);
 				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
 				XClearWindow(dpy,fs_win);
