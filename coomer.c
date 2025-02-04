@@ -10,10 +10,26 @@
 #define KEY_K 45
 #define KEY_L 46
 #define KEY_N 57
+#define KEY_U 30
+#define KEY_I 31
+#define KEY_M 58
 #define KEY_P 33
+#define KEY_COMMA 59
 #define KEY_ESC 9
 #define BUTTON_SCROLL_UP 4
 #define BUTTON_SCROLL_DOWN 5
+
+static const int zoom_in_keys[] =  {
+	KEY_H, 
+	KEY_J,	
+	KEY_K,
+	KEY_L,
+	KEY_N,
+	KEY_U,
+	KEY_I,
+	KEY_M,
+	KEY_COMMA
+};
 
 typedef struct  {
 	int x;
@@ -129,7 +145,14 @@ int main() {
 		if (event.type == Expose) {
 		} else if (event.type == KeyPress) {
 			if (event.xkey.keycode == KEY_ESC || event.xkey.keycode == KEY_Q) _ = 0;
-			if ((event.xkey.keycode >= KEY_H && event.xkey.keycode <= KEY_L) || event.xkey.keycode == KEY_N) {
+			int is_zoom_in_key = 0;
+			for (int i = 0;i < sizeof(zoom_in_keys) / sizeof(*zoom_in_keys); ++i) {
+				if (event.xkey.keycode == zoom_in_keys[i]) {
+					is_zoom_in_key = 1;
+					break;
+				}
+			}
+			if (is_zoom_in_key) {
 				int xpos = 0;
 				int ypos = 0;
 				switch (event.xkey.keycode) {
@@ -148,6 +171,22 @@ int main() {
 					case KEY_Q:
 						xpos = width;
 						ypos = height / 2;
+						break;
+					case KEY_U:
+						xpos = 0;
+						ypos = 0;
+						break;
+					case KEY_I:
+						xpos = width;
+						ypos = 0;
+						break;
+					case KEY_M:
+						xpos = 0;
+						ypos = height;
+						break;
+					case KEY_COMMA:
+						xpos = width;
+						ypos = height;
 						break;
 					case KEY_N:
 						xpos = width/2;
@@ -173,6 +212,7 @@ int main() {
 				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
 				XClearWindow(dpy,fs_win);
 			}
+			//printf("%d\n", event.xkey.keycode);
 		} else if (event.type == ButtonPress) {
 			if (event.xbutton.button == BUTTON_SCROLL_UP) {
 				int xpos = event.xbutton.x;
