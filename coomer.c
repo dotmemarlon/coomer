@@ -48,20 +48,20 @@ void nearest_upscale_image(XImage* img1, XImage* img2, int x, int y, int swidth,
 	}
 }
 
-IRect zoom_in(IRect* irects, int *irects_idx_ptr,int irects_capacity, int width, int height, int xpos, int ypos) {
+IRect zoom_in(IRect** irects_ptr, int *irects_idx_ptr,int irects_capacity, int width, int height, int xpos, int ypos) {
 	int irects_idx = *irects_idx_ptr;
+	IRect* irects = *irects_ptr;
 	IRect zoomed_irect = (IRect)irects[irects_idx];
 	zoomed_irect.width = zoomed_irect.width * 3 / 4;
 	zoomed_irect.height = zoomed_irect.height * 3 / 4;
 
 	int bruh = 0;
 
-	if (zoomed_irect.width * 100 < width || zoomed_irect.height * 100 < height) {
-		zoomed_irect.width = width/100;;
-		zoomed_irect.height = height/100;
+	if (zoomed_irect.width * 50 < width || zoomed_irect.height * 50 < height) {
+		zoomed_irect.width = width/50;;
+		zoomed_irect.height = height/50;
 		bruh = 1;
 	}
-
 
 	if (xpos * 3 > width * 2) {
 		zoomed_irect.x = irects[irects_idx].x + (irects[irects_idx].width - zoomed_irect.width);
@@ -86,6 +86,7 @@ IRect zoom_in(IRect* irects, int *irects_idx_ptr,int irects_capacity, int width,
 	}
 	irects[irects_idx] = zoomed_irect;
 	*irects_idx_ptr = irects_idx;
+	*irects_ptr = irects;
 	return zoomed_irect;
 }
 
@@ -193,7 +194,7 @@ int main() {
 						ypos = height/2;
 						break;
 				}
-				IRect zoomed_irect = zoom_in(irects, &irects_idx, irects_capacity, width, height, xpos, ypos);
+				IRect zoomed_irect = zoom_in(&irects, &irects_idx, irects_capacity, width, height, xpos, ypos);
 				nearest_upscale_image(ximg, ximg_zoom, zoomed_irect.x, zoomed_irect.y, zoomed_irect.width, zoomed_irect.height);
 				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
 				XClearWindow(dpy,fs_win);
@@ -217,7 +218,7 @@ int main() {
 			if (event.xbutton.button == BUTTON_SCROLL_UP) {
 				int xpos = event.xbutton.x;
 				int ypos = event.xbutton.y;
-				IRect zoomed_irect = zoom_in(irects, &irects_idx, irects_capacity, width, height, xpos, ypos);
+				IRect zoomed_irect = zoom_in(&irects, &irects_idx, irects_capacity, width, height, xpos, ypos);
 				nearest_upscale_image(ximg, ximg_zoom, zoomed_irect.x, zoomed_irect.y, zoomed_irect.width, zoomed_irect.height);
 				XPutImage(dpy, pixmap, fs_gc, ximg_zoom, 0, 0, 0, 0, width, height);
 				XClearWindow(dpy,fs_win);
