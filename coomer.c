@@ -161,6 +161,10 @@ int main() {
 						xpos = 0;
 						ypos = height/2;
 						break;
+					case KEY_L:
+						xpos = width;
+						ypos = height/2;
+						break;
 					case KEY_J:
 						xpos = width / 2;
 						ypos = height;
@@ -168,10 +172,6 @@ int main() {
 					case KEY_K:
 						xpos = width / 2;
 						ypos = 0;
-						break;
-					case KEY_Q:
-						xpos = width;
-						ypos = height / 2;
 						break;
 					case KEY_U:
 						xpos = 0;
